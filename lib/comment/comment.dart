@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
 
 import 'comment_cubit/bloc_event.dart';
@@ -10,8 +12,8 @@ import 'comment_cubit/comment_bloc.dart';
 class CommentList extends StatelessWidget {
   CommentList(this.postId, {Key? key}) : super(key: key);
   int? postId;
-  final RefreshController _refreshCommentsController =
-      RefreshController(initialRefresh: false);
+
+  final ItemScrollController _scrollController = ItemScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -34,110 +36,105 @@ class CommentList extends StatelessWidget {
                   if (state.comment.isEmpty) {
                     return const Center(child: Text('no Comments'));
                   }
-                  return SmartRefresher(
-                    physics: const BouncingScrollPhysics(),
-                    enablePullDown: true,
-                    enablePullUp: true,
-                    header: const WaterDropHeader(),
-                    footer: CustomFooter(
-                      builder: (context, mode) {
-                        Widget body;
-                        if (mode == LoadStatus.idle) {
-                          body = state.hasReachedMax == true
-                              ? Container()
-                              : const Center(
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 1.5));
-                        } else if (mode == LoadStatus.loading) {
-                          body = const Center(
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 1.5));
-                        } else if (mode == LoadStatus.failed) {
-                          body = const Text("Load Failed!Click retry!");
+                  return NotificationListener<ScrollEndNotification>(
+                    onNotification: (scrollEnd) {
+                      final metrics = scrollEnd.metrics;
+                      if (metrics.atEdge) {
+                        bool isTop = metrics.pixels == 0;
+                        if (isTop) {
                         } else {
-                          body = const Text("No more Data");
+                          context
+                              .read<CommentBloc>()
+                              .add(CommentFetched(postId));
                         }
-                        return SizedBox(
-                          height: 55.0,
-                          child: Center(child: body),
-                        );
-                      },
-                    ),
-                    controller: _refreshCommentsController,
-                    onRefresh: () async {
-                      _refreshCommentsController.refreshCompleted();
+                      }
+                      return true;
                     },
-                    onLoading: () async {
-                      await Future.delayed(const Duration(seconds: 0));
-                      //context.read<CommentBloc>().add(CommentFetched(postId));
-
-                      _refreshCommentsController.loadComplete();
-                    },
-                    child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: state.comment.length,
+                    child: ScrollablePositionedList.builder(
+                        initialScrollIndex: state.comment.length <= 5
+                            ? 0
+                            : state.comment.length - 5,
+                        itemScrollController: _scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: state.hasReachedMax
+                            ? state.comment.length
+                            : state.comment.length + 1,
                         itemBuilder: (context, index) {
-                          return Padding(
-                            padding:
-                                const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                            child: Directionality(
-                              textDirection: TextDirection.rtl,
-                              child: Card(
-                                elevation: 10,
-                                child: SizedBox(
-                                  height: 15.h,
-                                  child: Row(
-                                    children: [
-                                      const SizedBox(
-                                        width: 15,
-                                      ),
-                                      Container(
-                                        height: 8.h,
-                                        width: 7.h,
-                                        decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Colors.green),
-                                        child: const Padding(
-                                          padding: EdgeInsets.all(20.0),
-                                          child: Icon(Icons.comment),
+                          return index >= state.comment.length
+                              ? SizedBox(
+                                  height: 30,
+                                  child: state.comment.length % 5 == 1
+                                      ? Container()
+                                      : const Center(
+                                          child: SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 1.5),
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(
-                                        width: 15,
-                                      ),
-                                      SizedBox(
-                                        width: 300,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 8.0, bottom: 8.0),
+                                  child: Directionality(
+                                    textDirection: TextDirection.rtl,
+                                    child: Card(
+                                      elevation: 10,
+                                      child: SizedBox(
+                                        height: 18.h,
+                                        child: Row(
                                           children: [
-                                            const Spacer(),
-                                            Text(
-                                                "${state.comment[index].commentcontentStr}"),
                                             const SizedBox(
-                                              height: 8,
+                                              width: 15,
                                             ),
-                                            Text(
-                                                "${state.comment[index].commentDate}"),
+                                            Container(
+                                              height: 8.h,
+                                              width: 7.h,
+                                              decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.green),
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(20.0),
+                                                child: Icon(Icons.comment),
+                                              ),
+                                            ),
                                             const SizedBox(
-                                              height: 8,
+                                              width: 15,
                                             ),
-                                            const Spacer(),
+                                            SizedBox(
+                                              width: 300,
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceAround,
+                                                children: [
+                                                  const Spacer(),
+                                                  Text(
+                                                      "${state.comment[index].commentcontentStr}"),
+                                                  const SizedBox(
+                                                    height: 8,
+                                                  ),
+                                                  Text(
+                                                      "${state.comment[index].commentDate}"),
+                                                  const SizedBox(
+                                                    height: 8,
+                                                  ),
+                                                  const Spacer(),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 15,
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(
-                                        width: 15,
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          );
+                                );
                         }),
                   );
 

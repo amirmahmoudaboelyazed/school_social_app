@@ -32,6 +32,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
   }
 
   int currentPage =0;
+
   Future<void> _onPostFetched(
       PostFetched event,
       Emitter<PostState> emit,
@@ -66,9 +67,9 @@ class PostBloc extends Bloc<PostEvent, PostState> {
   Future<List<PostModel>> _fetchPosts({int? currentPage,int? pageSize}) async {
     List<PostModel> posts =[];
     Response? response = await DioMethods.getPosts(currentPage: currentPage!, pageSize: pageSize!);
-
     if (response!.statusCode == 200) {
       posts=  postModelChipDataFromJson(jsonEncode(response.data)) ;
+      print(postModelChipDataFromJson(jsonEncode(response.data)).length);
 
     return   posts;
     }

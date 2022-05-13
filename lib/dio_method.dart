@@ -7,12 +7,11 @@ import 'Helper/network_helper.dart';
 
 class DioMethods {
   static Future<Response?> getPosts(
-      {required int currentPage, required int pageSize}) async {
+      {required int currentPage, required int pageSize }) async {
     log('$currentPage',name: "My CurrentPage");
     Dio dio = Dio();
-
     return await dio.get(
-        "${NetowrkHelper.domain}RenderPosts?CurrentPage=0&PageSize=10&createdPostsCount=0",
+        "${NetowrkHelper.domain}RenderPosts?CurrentPage=${currentPage}&PageSize=${pageSize}&createdPostsCount=0",
         options: Options(headers: {
           "Cookie":
               "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoi2YrYp9iz2YrZhiDZhdin2LLZhiDZhdit2YXZiNivIiwiQWN0aXZhdGlvbktleSI6Ijc1MDJjZWMxLTc2N2QtNDg3MS1iYWI3LTBlYmYzZTczZmU4YyIsIm5hbWVpZCI6IjE1MTIiLCJVc2VyVHlwZSI6IjIiLCJuYmYiOjE2NTE5OTYzMzksImV4cCI6MTY1MjAzOTUzOSwiaWF0IjoxNjUxOTk2MzM5fQ.CCPfqGaDVo4fk_mQWRIEkhvXZieiWVqJOmsNdhcp26Q",
@@ -29,7 +28,7 @@ class DioMethods {
     Dio dio = Dio();
 
     return await dio.get(
-        "${NetowrkHelper.domain}RenderComments?CurrentPage=0&PageSize=5&CreatedCommentsCount=0&PostID=${postId}",
+        "${NetowrkHelper.domain}RenderComments?CurrentPage=${currentPage}&PageSize=${pageSize}&CreatedCommentsCount=0&PostID=${postId}",
         options: Options(headers: {
           "Cookie":
               "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoi2YrYp9iz2YrZhiDZhdin2LLZhiDZhdit2YXZiNivIiwiQWN0aXZhdGlvbktleSI6Ijc1MDJjZWMxLTc2N2QtNDg3MS1iYWI3LTBlYmYzZTczZmU4YyIsIm5hbWVpZCI6IjE1MTIiLCJVc2VyVHlwZSI6IjIiLCJuYmYiOjE2NTE5OTYzMzksImV4cCI6MTY1MjAzOTUzOSwiaWF0IjoxNjUxOTk2MzM5fQ.CCPfqGaDVo4fk_mQWRIEkhvXZieiWVqJOmsNdhcp26Q",

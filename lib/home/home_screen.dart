@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:social_app/comment/comment.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:social_app/home/components/post_item.dart';
 import 'package:social_app/home/components/post_part.dart';
 import '../constants/colors.dart';
@@ -9,10 +8,15 @@ import 'home_cubit/bloc_event.dart';
 import 'home_cubit/bolc_state.dart';
 import 'home_cubit/post_bloc.dart';
 
-class PostsList extends StatelessWidget {
+class PostsList extends StatefulWidget {
   PostsList({Key? key}) : super(key: key);
-  final RefreshController _refreshController =
-  RefreshController(initialRefresh: false);
+
+  @override
+  State<PostsList> createState() => _PostsListState();
+}
+
+class _PostsListState extends State<PostsList> {
+  final ItemScrollController _scrollController = ItemScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +26,10 @@ class PostsList extends StatelessWidget {
         appBar: AppBar(
           title: const Center(
               child: Text(
-                "Social Media",
-                style:
+            "Social Media",
+            style:
                 TextStyle(color: MyColors.myTeal, fontStyle: FontStyle.italic),
-              )),
+          )),
           backgroundColor: Colors.white,
           actions: const [
             Padding(
@@ -53,61 +57,47 @@ class PostsList extends StatelessWidget {
                     children: [
                       postPart(),
                       Expanded(
-                        child: SmartRefresher(
-                          physics: const BouncingScrollPhysics(),
-                          enablePullDown: true,
-                          enablePullUp: true,
-                          header: const WaterDropHeader(),
-                          footer: CustomFooter(
-                            builder: (context, mode) {
-                              Widget body;
-                              if (mode == LoadStatus.idle) {
-                                body = state.hasReachedMax == true
-                                    ? Container()
-                                    : const Center(
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 1.5));
-                              } else if (mode == LoadStatus.loading) {
-                                body = const Center(
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 1.5));
-                              } else if (mode == LoadStatus.failed) {
-                                body = const Text("Load Failed!Click retry!");
+                        child: NotificationListener<ScrollEndNotification>(
+                          onNotification: (scrollEnd) {
+                            final metrics = scrollEnd.metrics;
+                            if (metrics.atEdge) {
+                              bool isTop = metrics.pixels == 0;
+                              if (isTop) {
                               } else {
-                                body = const Text("No more Data");
+                                context.read<PostBloc>().add(PostFetched());
                               }
-                              return SizedBox(
-                                height: 55.0,
-                                child: Center(child: body),
-                              );
-                            },
-                          ),
-                          controller: _refreshController,
-                          onRefresh: () async {
-                            _refreshController.refreshCompleted();
+                            }
+                            return true;
                           },
-                          onLoading: () async {
-                            await Future.delayed(const Duration(seconds: 0));
-                            context.read<PostBloc>().add(PostFetched());
-
-                            _refreshController.loadComplete();
-                          },
-                          child: ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: state.posts.length,
+                          child: ScrollablePositionedList.builder(
+                              initialScrollIndex: state.posts.length - 10,
+                              itemScrollController: _scrollController,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: state.hasReachedMax
+                                  ? state.posts.length
+                                  : state.posts.length + 1,
                               itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(
-                                      top: 8.0, bottom: 8.0),
-                                  child: postItem(
-                                      context,
-                                      state.posts[index].postUserName,
-                                      state.posts[index].dateOfPost,
-                                      state.posts[index].postcontentStr,
-                                      state.posts[index].postId,
-                                      state.posts[index].totalcommentsCount),
-                                );
+                                return index >= state.posts.length
+                                    ? const Center(
+                                        child: SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 1.5),
+                                        ),
+                                      )
+                                    : Padding(
+                                        padding: const EdgeInsets.only(
+                                            top: 8.0, bottom: 8.0),
+                                        child: postItem(
+                                            context,
+                                            state.posts[index].postUserName,
+                                            state.posts[index].dateOfPost,
+                                            state.posts[index].postcontentStr,
+                                            state.posts[index].postId,
+                                            state.posts[index]
+                                                .totalcommentsCount),
+                                      );
                               }),
                         ),
                       ),
