@@ -64,7 +64,9 @@ class _PostsListState extends State<PostsList> {
                               bool isTop = metrics.pixels == 0;
                               if (isTop) {
                               } else {
-                                context.read<PostBloc>().add(PostFetched());
+                                if (state.hasReachedMax == false) {
+                                  context.read<PostBloc>().add(PostFetched());
+                                }
                               }
                             }
                             return true;

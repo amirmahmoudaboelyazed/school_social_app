@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sizer/sizer.dart';
-
 import 'comment_cubit/bloc_event.dart';
 import 'comment_cubit/bolc_state.dart';
 import 'comment_cubit/comment_bloc.dart';
@@ -43,9 +40,11 @@ class CommentList extends StatelessWidget {
                         bool isTop = metrics.pixels == 0;
                         if (isTop) {
                         } else {
-                          context
-                              .read<CommentBloc>()
-                              .add(CommentFetched(postId));
+                          if (state.hasReachedMax == false) {
+                            context
+                                .read<CommentBloc>()
+                                .add(CommentFetched(postId));
+                          }
                         }
                       }
                       return true;
